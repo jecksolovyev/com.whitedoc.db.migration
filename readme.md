@@ -3,7 +3,10 @@ The idea behind this lib is to migrate your DB before your application starts.
 
 ## Create Migrations
 Template to use `com.whitedoc.db.migration.AbstractMigrationTemplate`. 
+
 ClassName format is: M`<Long version-number>`_`<ClassName>`
+
+For the sake of completeness, the example class could be: `M20190829000000_CreateUsersTable.java`
 
 Files may be prefixed with `M` (one letter of your choice actually), then migration 
 goes version number (I recommend use creation date `YYYYMMDDHHIISS`).
@@ -32,7 +35,8 @@ migrator.run();
 ## Create Seeds
 Sometimes, you need to seed your database with data, for instance before tests run.
 
-Template to use `com.whitedoc.db.migration.AbstractSeedTemplate`. 
+Template to use `com.whitedoc.db.migration.AbstractSeedTemplate`.
+
 ClassName format is: S`<Long run-order-number>`_`<ClassName>`
 
 Files may be prefixed with `S` (one letter of your choice actually), and then run-order number 
