@@ -1,6 +1,8 @@
 package com.whitedoc.db.migration;
 
 import org.reflections.Reflections;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.lang.reflect.InvocationTargetException;
@@ -13,6 +15,8 @@ import java.util.Comparator;
 import java.util.HashSet;
 
 final public class Migrator {
+
+    private static Logger logger = LoggerFactory.getLogger(Migrator.class);
 
     private DataSource ds;
     private String versionsTableName = "migrations";
@@ -69,9 +73,11 @@ final public class Migrator {
             stm.executeUpdate();
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
             System.exit(0);
         }
+
+        logger.debug("Versions initialized");
     }
 
     private void loadVersions() {
@@ -82,9 +88,11 @@ final public class Migrator {
                 this.doneMigrations.add(rs.getString(1));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
             System.exit(0);
         }
+
+        logger.debug("Versions loaded");
     }
 
     private void setVersion(String version) {
@@ -96,7 +104,7 @@ final public class Migrator {
             stm.executeUpdate();
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
             System.exit(0);
         }
     }
@@ -110,6 +118,9 @@ final public class Migrator {
      * Search for seeds at `seedsClasspath` and run them
      */
     public void seed() {
+
+        logger.info("Seeding started");
+
         new Reflections(this.seedsClasspath)
                 .getSubTypesOf(Seed.class)
                 .stream()
@@ -117,18 +128,19 @@ final public class Migrator {
                 .sorted(Comparator.comparing(o -> Long.valueOf(Migrator.getVersion(o))))
                 .forEach(m -> {
                     try {
-                        System.out.println("Started seed of " + m.getName());
+
+                        logger.debug("Started seeding {}", m.getName());
                         // instantiate migration class
                         Seed mg = Migrator.instantiate(m.getName(), Seed.class);
                         mg.setDataSource(this.ds);
                         // migrate
                         mg.up();
                         // done
-                        System.out.println("Ended migration of " + m.getName());
+                        logger.debug("Ended seeding {}", m.getName());
 
                     } catch (SQLException e) {
                         // exit if error
-                        e.printStackTrace();
+                        logger.error(e.getMessage());
                         System.exit(0);
                     }
                 });
@@ -138,6 +150,8 @@ final public class Migrator {
      * Search for migrations at `migrationsClasspath` and run them
      */
     public void run() {
+
+        logger.info("Migrating started");
 
         this.initVersions();
         this.loadVersions();
@@ -150,7 +164,8 @@ final public class Migrator {
                 .filter(o -> !this.doneMigrations.contains(Migrator.getVersion(o)))
                 .forEach(m -> {
                     try {
-                        System.out.println("Started migration of " + m.getName());
+
+                        logger.debug("Started migrating {}", m.getName());
                         // instantiate migration class
                         Migration mg = Migrator.instantiate(m.getName(), Migration.class);
                         mg.setDataSource(this.ds);
@@ -159,11 +174,11 @@ final public class Migrator {
                         // store version
                         this.setVersion(Migrator.getVersion(mg.getClass()));
                         // done
-                        System.out.println("Ended migration of " + m.getName());
+                        logger.debug("Ended migrating {}", m.getName());
 
                     } catch (SQLException e) {
                         // exit if error
-                        e.printStackTrace();
+                        logger.error(e.getMessage());
                         System.exit(0);
                     }
                 });
